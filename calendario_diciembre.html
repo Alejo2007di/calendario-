@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <link rel="manifest" href="manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calendario Diciembre - Plan de Actividades</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('https://png.pngtree.com/thumb_back/fw800/background/20230721/pngtree-a-christmas-themed-living-room-aglow-with-the-warm-radiance-of-image_3713946.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            color: #f4c542;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+            margin-bottom: 20px;
+        }
+
+        /* Contenedor de pantalla de inicio */
+        .login-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .login-screen input[type="text"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            font-size: 1em;
+            text-align: center;
+        }
+
+        .login-screen button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Contenedor del calendario */
+        .calendar-container {
+            display: none;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+            max-width: 1000px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Días del calendario */
+        .day {
+            background-color: #ff6666;
+            border: 1px solid #ccc;
+            padding: 15px;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+        
+        .day:hover {
+            transform: scale(1.05);
+            background-color: #ff5050;
+        }
+
+        .day-header {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .day-content {
+            min-height: 50px;
+            font-size: 0.9em;
+            text-align: center;
+        }
+
+        /* Estilos del modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            background-color: #f4c542;
+            border: 2px solid #ff6666;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .modal h3 {
+            color: #ff3333;
+            text-align: center;
+        }
+
+        .modal textarea {
+            width: 100%;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ff6666;
+            border-radius: 5px;
+            resize: none;
+        }
+
+        .modal-buttons {
+            margin-top: 15px;
+            text-align: right;
+        }
+
+        .modal-buttons button {
+            padding: 8px 15px;
+            margin-left: 5px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .save-button {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .close-button {
+            background-color: #ff3333;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>Calendario Diciembre - Plan de Actividades</h1>
+
+    <!-- Pantalla de inicio para ingresar la clave -->
+    <div class="login-screen" id="loginScreen">
+        <p>Ingresa el código para acceder al calendario:</p>
+        <input type="text" id="accessCode" placeholder="Escribe el código aquí">
+        <button onclick="checkAccess()">Enviar</button>
+    </div>
+
+    <!-- Contenedor del calendario (oculto inicialmente) -->
+    <div class="calendar-container" id="calendar">
+        <!-- Aquí se generarán los días del calendario -->
+    </div>
+
+    <!-- Modal para agregar o editar eventos -->
+    <div class="modal" id="eventModal">
+        <h3>Agregar o Editar Evento</h3>
+        <textarea id="eventText" rows="4" placeholder="Escribe el evento aquí..."></textarea>
+        <div class="modal-buttons">
+            <button class="close-button" onclick="closeModal()">Cancelar</button>
+            <button class="save-button" onclick="saveEvent()">Guardar</button>
+        </div>
+    </div>
+
+    <script>
+        const daysInDecember = 31;
+        const calendar = document.getElementById("calendar");
+        let currentDay = null;
+
+        // Cargar eventos guardados al cargar la página
+        const events = JSON.parse(localStorage.getItem("calendarEvents")) || {};
+
+        // Función para obtener el nombre del día de la semana
+        function getDayOfWeek(day, month, year) {
+            const date = new Date(year, month - 1, day);
+            const daysOfWeek = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
+            return daysOfWeek[date.getDay()];
+        }
+
+        // Crear días del calendario y cargar eventos si existen
+        function createCalendar() {
+            for (let i = 1; i <= daysInDecember; i++) {
+                const dayOfWeek = getDayOfWeek(i, 12, 2024);
+                const dayDiv = document.createElement("div");
+                dayDiv.classList.add("day");
+                dayDiv.innerHTML = `<div class="day-header">${i} de Diciembre - ${dayOfWeek}</div>
+                                    <div class="day-content" id="content-${i}">${events[i] || "Sin eventos"}</div>`;
+                dayDiv.onclick = () => openModal(i);
+                calendar.appendChild(dayDiv);
+            }
+        }
+
+        // Abrir modal para agregar o editar evento
+        function openModal(day) {
+            currentDay = day;
+            const eventText = document.getElementById(`content-${day}`).innerText;
+            document.getElementById("eventText").value = eventText !== "Sin eventos" ? eventText : "";
+            document.getElementById("eventModal").style.display = "block";
+        }
+
+        // Cerrar modal
+        function closeModal() {
+            document.getElementById("eventModal").style.display = "none";
+            document.getElementById("eventText").value = "";
+        }
+
+        // Guardar evento en el calendario y en localStorage
+        function saveEvent() {
+            const eventText = document.getElementById("eventText").value.trim();
+            const dayContent = document.getElementById(`content-${currentDay}`);
+            dayContent.innerText = eventText || "Sin eventos";
+
+            events[currentDay] = eventText || "Sin eventos";
+            localStorage.setItem("calendarEvents", JSON.stringify(events));
+
+            closeModal();
+        }
+
+        // Verificar el código de acceso
+        function checkAccess() {
+            const accessCode = document.getElementById("accessCode").value;
+            if (accessCode === "200710") {
+                document.getElementById("loginScreen").style.display = "none";
+                document.getElementById("calendar").style.display = "grid";
+                createCalendar();
+            } else {
+                alert("Código incorrecto. Intenta de nuevo.");
+            }
+        }
+    </script>
+
+<script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js')
+        .then(reg => console.log("Service Worker registrado!"))
+        .catch(err => console.error("Error al registrar el Service Worker:", err));
+    }
+  </script>
+  
+</body>
+</html>
